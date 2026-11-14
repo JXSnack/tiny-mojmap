@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("application")
 }
 
 group = "me.jxsnack.tinymojmap"
@@ -20,4 +21,8 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass = "me.jxsnack.tinymojmap.Main"
 }
