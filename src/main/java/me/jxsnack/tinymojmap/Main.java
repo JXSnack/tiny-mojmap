@@ -7,7 +7,7 @@ public class Main {
         String version = args.length > 0 ? args[0] : "1.21.1";
         Path out = Path.of("build", "mappings");
 
-        new MojmapGenerator(Path.of("build", "mapping-cache"), out).generate(version);
+        new MojmapGenerator(Path.of("build", "mapping-cache"), out).generate(version, "2024.11.17");
         TinyJar.pack(out.resolve("mappings.tiny"), out.resolve("mojmap-" + version + ".jar"));
     }
 }

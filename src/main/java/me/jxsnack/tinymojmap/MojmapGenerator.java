@@ -3,6 +3,7 @@ package me.jxsnack.tinymojmap;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.mappingio.MappingReader;
+import net.fabricmc.mappingio.MappingVisitor;
 import net.fabricmc.mappingio.adapter.MappingNsCompleter;
 import net.fabricmc.mappingio.adapter.MappingSourceNsSwitch;
 import net.fabricmc.mappingio.format.MappingFormat;
@@ -21,6 +22,7 @@ import java.util.zip.ZipFile;
 public class MojmapGenerator {
     private static final String MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     private static final String INTERMEDIARY = "https://maven.fabricmc.net/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar";
+    private static final String PARCHMENT = "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-%1$s/%2$s/parchment-%1$s-%2$s.zip";
 
     private final Path cache;
     private final Path out;
@@ -30,7 +32,7 @@ public class MojmapGenerator {
         this.out = out;
     }
 
-    public void generate(String version) throws Exception {
+    public void generate(String version, String parchmentVersion) throws Exception {
         Files.createDirectories(cache);
         Files.createDirectories(out);
 
@@ -79,9 +81,25 @@ public class MojmapGenerator {
             }
         }
 
+        // parchment parameter names
+        JsonObject parchment = null;
+        if (parchmentVersion != null) {
+            Path zipPath = download(PARCHMENT.formatted(version, parchmentVersion), "parchment-" + version + "-" + parchmentVersion + ".zip");
+            try (
+                    ZipFile zip = new ZipFile(zipPath.toFile());
+                    Reader r = new java.io.InputStreamReader(zip.getInputStream(zip.getEntry("parchment.json")))
+            ) {
+                parchment = JsonParser.parseReader(r).getAsJsonObject();
+            }
+        }
+
         // write and fall back to intermediary
-        try (Writer w = Files.newBufferedWriter(out.resolve("mappings.tiny")); Tiny2FileWriter writer = new Tiny2FileWriter(w, false)) {
-            tree.accept(new MappingNsCompleter(writer, Map.of("named", "intermediary")));
+        try (
+                Writer w = Files.newBufferedWriter(out.resolve("mappings.tiny"));
+                Tiny2FileWriter writer = new Tiny2FileWriter(w, false)
+        ) {
+            MappingVisitor sink = new MappingNsCompleter(writer, Map.of("named", "intermediary"));
+            tree.accept(parchment != null ? new Parchment(sink, tree, parchment) : sink);
         }
     }
 
