@@ -4,7 +4,10 @@ import java.nio.file.Path;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        new MojmapGenerator(Path.of("build", "mapping-cache"), Path.of("build", "mappings"))
-                .generate(args.length > 0 ? args[0] : "1.21.1");
+        String version = args.length > 0 ? args[0] : "1.21.1";
+        Path out = Path.of("build", "mappings");
+
+        new MojmapGenerator(Path.of("build", "mapping-cache"), out).generate(version);
+        TinyJar.pack(out.resolve("mappings.tiny"), out.resolve("mojmap-" + version + ".jar"));
     }
 }
